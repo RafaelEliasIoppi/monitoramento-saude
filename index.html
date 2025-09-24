@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Monitoramento de Saúde</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-4">
+    <h1 class="mb-4">Monitoramento de Saúde</h1>
+
+    <!-- Formulário de Usuário -->
+    <div class="card mb-4">
+      <div class="card-header">Criar Usuário</div>
+      <div class="card-body">
+        <form id="usuario-form" class="row g-3">
+          <div class="col-md-6">
+            <input type="text" name="nome" class="form-control" placeholder="Nome do usuário" required>
+          </div>
+          <div class="col-md-6">
+            <input type="email" name="email" class="form-control" placeholder="Email do usuário" required>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">Criar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulário de Pressão Arterial -->
+    <div class="card mb-4">
+      <div class="card-header">Registrar Pressão Arterial</div>
+      <div class="card-body">
+        <form id="pressao-form" class="row g-3">
+          <div class="col-md-3">
+            <input type="number" name="sistolica" class="form-control" placeholder="Sistólica" required>
+          </div>
+          <div class="col-md-3">
+            <input type="number" name="diastolica" class="form-control" placeholder="Diastólica" required>
+          </div>
+          <div class="col-md-3">
+            <input type="datetime-local" name="dataHora" class="form-control" required>
+          </div>
+          <div class="col-md-3">
+            <input type="number" name="usuarioId" class="form-control" placeholder="ID do usuário" required>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-success">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulário de Glicemia -->
+    <div class="card mb-4">
+      <div class="card-header">Registrar Glicemia</div>
+      <div class="card-body">
+        <form id="glicemia-form" class="row g-3">
+          <div class="col-md-4">
+            <input type="number" step="0.1" name="nivel" class="form-control" placeholder="Nível de glicemia" required>
+          </div>
+          <div class="col-md-4">
+            <input type="datetime-local" name="dataHora" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <input type="number" name="usuarioId" class="form-control" placeholder="ID do usuário" required>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-warning">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulário de Sono -->
+    <div class="card mb-4">
+  <div class="card-header">Registrar Sono</div>
+  <div class="card-body">
+    <form id="sono-form" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label for="inicio" class="form-label">Início</label>
+        <input type="datetime-local" name="inicio" id="inicio" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label for="fim" class="form-label">Fim</label>
+        <input type="datetime-local" name="fim" id="fim" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label for="qualidade" class="form-label">Qualidade (1 a 5)</label>
+        <input type="number" name="qualidade" id="qualidade" class="form-control" min="1" max="5" required>
+      </div>
+      <div class="col-md-3">
+        <label for="usuarioIdSono" class="form-label">ID do Usuário</label>
+        <input type="number" name="usuarioId" id="usuarioIdSono" class="form-control" required>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-info">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+    <h2 class="mt-5">Relatório por Usuário</h2>
+        <form id="relatorio-form" class="row g-3 mb-3">
+        <div class="col-md-4">
+            <input type="number" name="usuarioId" class="form-control" placeholder="ID do usuário" required>
+        </div>
+        <div class="col-md-8">
+            <button type="submit" class="btn btn-dark">Ver Relatório</button>
+        </div>
+        </form>
+        <div id="relatorio-resultado">
+
+    <!-- Listagem de Usuários -->
+    <h2 class="mt-5">Usuários Registrados</h2>
+    <ul id="usuarios-list" class="list-group mb-5"></ul>
+  </div>
+
+  <script>
+    const baseUrl = "https://jubilant-space-xylophone-pjrwr664qpw5c9rq4-3335.app.github.dev";
+
+    // Criar usuário
+    document.getElementById('usuario-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const payload = {
+        nome: data.get('nome'),
+        email: data.get('email')
+      };
+      const res = await fetch(`${baseUrl}/usuarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        alert('Usuário criado!');
+        e.target.reset();
+        carregarUsuarios();
+      } else {
+        alert('Erro ao criar usuário');
+      }
+    });
+
+    // Pressão Arterial
+    document.getElementById('pressao-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const payload = {
+        sistolica: parseInt(data.get('sistolica')),
+        diastolica: parseInt(data.get('diastolica')),
+        dataHora: data.get('dataHora'),
+        usuario: { id: parseInt(data.get('usuarioId')) }
+      };
+      const res = await fetch(`${baseUrl}/pressao`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      alert(res.ok ? 'Pressão registrada!' : 'Erro ao registrar pressão');
+    });
+
+    // Glicemia
+    document.getElementById('glicemia-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const payload = {
+        nivel: parseFloat(data.get('nivel')),
+        dataHora: data.get('dataHora'),
+        usuario: { id: parseInt(data.get('usuarioId')) }
+      };
+      const res = await fetch(`${baseUrl}/glicemia`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      alert(res.ok ? 'Glicemia registrada!' : 'Erro ao registrar glicemia');
+    });
+
+    // Sono
+    document.getElementById('sono-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const payload = {
+        inicio: data.get('inicio'),
+        fim: data.get('fim'),
+        qualidade: parseInt(data.get('qualidade')),
+        usuario: { id: parseInt(data.get('usuarioId')) }
+      };
+      const res = await fetch(`${baseUrl}/sono`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      alert(res.ok ? 'Sono registrado!' : 'Erro ao registrar sono');
+    });
+
+    // Listar usuários
+    async function carregarUsuarios() {
+      const res = await fetch(`${baseUrl}/usuarios`);
+      if (res.ok) {
+        const usuarios = await res.json();
+        const lista = document.getElementById('usuarios-list');
+        lista.innerHTML = '';
+        usuarios.forEach(u => {
+          const item = document.createElement('li');
+          item.className = 'list-group-item';
+          item.textContent = `ID: ${u.id} | Nome: ${u.nome} | Email: ${u.email}`;
+          lista.appendChild(item);
+        });
+      }
+    }
+
+    // Carregar ao abrir
+    carregarUsuarios();
+
+document.getElementById('relatorio-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const usuarioId = e.target.usuarioId.value;
+  const resultado = document.getElementById('relatorio-resultado');
+  resultado.innerHTML = `<p>Carregando dados do usuário ${usuarioId}...</p>`;
+
+  try {
+    const [pressaoRes, glicemiaRes, sonoRes, alertaRes] = await Promise.all([
+      fetch(`${baseUrl}/pressao`),
+      fetch(`${baseUrl}/glicemia`),
+      fetch(`${baseUrl}/sono`),
+      fetch(`${baseUrl}/alertas/${usuarioId}`)
+    ]);
+
+    const [pressao, glicemia, sono, alertas] = await Promise.all([
+      pressaoRes.json(),
+      glicemiaRes.json(),
+      sonoRes.json(),
+      alertaRes.json()
+    ]);
+
+    const filtrarPorUsuario = (lista) => lista.filter(item => item.usuario?.id == usuarioId);
+
+    const pressaoFiltrada = filtrarPorUsuario(pressao);
+    const glicemiaFiltrada = filtrarPorUsuario(glicemia);
+    const sonoFiltrada = filtrarPorUsuario(sono);
+
+    resultado.innerHTML = `
+      <h4>Pressão Arterial</h4>
+      <ul class="list-group mb-3">
+        ${pressaoFiltrada.map(p => `<li class="list-group-item">Sistólica: ${p.sistolica}, Diastólica: ${p.diastolica}, Data: ${p.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
+      </ul>
+
+      <h4>Glicemia</h4>
+      <ul class="list-group mb-3">
+        ${glicemiaFiltrada.map(g => `<li class="list-group-item">Nível: ${g.nivel}, Data: ${g.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
+      </ul>
+
+      <h4>Sono</h4>
+      <ul class="list-group mb-3">
+        ${sonoFiltrada.map(s => `<li class="list-group-item">Início: ${s.inicio}, Fim: ${s.fim}, Qualidade: ${s.qualidade}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
+      </ul>
+
+      <h4 class="text-danger">Alertas</h4>
+      <ul class="list-group mb-5">
+        ${alertas.map(a => `<li class="list-group-item list-group-item-danger">[${a.tipo}] ${a.mensagem} — ${a.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum alerta gerado.</li>'}
+      </ul>
+    `;
+  } catch (err) {
+    resultado.innerHTML = `<p class="text-danger">Erro ao carregar relatório.</p>`;
+    console.error(err);
+  }
+});
+
+
+  </script>
+</body>
+</html>
