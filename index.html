@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Monitoramento de Saúde</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container mt-4">
@@ -74,31 +75,30 @@
 
     <!-- Formulário de Sono -->
     <div class="card mb-4">
-  <div class="card-header">Registrar Sono</div>
-  <div class="card-body">
-    <form id="sono-form" class="row g-3 align-items-end">
-      <div class="col-md-3">
-        <label for="inicio" class="form-label">Início</label>
-        <input type="datetime-local" name="inicio" id="inicio" class="form-control" required>
+      <div class="card-header">Registrar Sono</div>
+      <div class="card-body">
+        <form id="sono-form" class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label for="inicio" class="form-label">Início</label>
+            <input type="datetime-local" name="inicio" id="inicio" class="form-control" required>
+          </div>
+          <div class="col-md-3">
+            <label for="fim" class="form-label">Fim</label>
+            <input type="datetime-local" name="fim" id="fim" class="form-control" required>
+          </div>
+          <div class="col-md-3">
+            <input type="number" name="qualidade" id="qualidade" class="form-control" placeholder="Qualidade (1 a 5)" min="1" max="5" required>
+          </div>
+          <div class="col-md-3">
+       
+            <input type="number" name="usuarioId" id="usuarioIdSono" class="form-control" required placeholder="ID do usuário">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-info">Salvar</button>
+          </div>
+        </form>
       </div>
-      <div class="col-md-3">
-        <label for="fim" class="form-label">Fim</label>
-        <input type="datetime-local" name="fim" id="fim" class="form-control" required>
-      </div>
-      <div class="col-md-3">
-        <label for="qualidade" class="form-label">Qualidade (1 a 5)</label>
-        <input type="number" name="qualidade" id="qualidade" class="form-control" min="1" max="5" required>
-      </div>
-      <div class="col-md-3">
-        <label for="usuarioIdSono" class="form-label">ID do Usuário</label>
-        <input type="number" name="usuarioId" id="usuarioIdSono" class="form-control" required>
-      </div>
-      <div class="col-12">
-        <button type="submit" class="btn btn-info">Salvar</button>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
     <h2 class="mt-5">Relatório por Usuário</h2>
         <form id="relatorio-form" class="row g-3 mb-3">
@@ -110,164 +110,289 @@
         </div>
         </form>
         <div id="relatorio-resultado">
+    <h2 class="mt-5">Gráfico de Glicemia</h2>
+    <canvas id="graficoGlicemia" width="400" height="200"></canvas>
+    <h2 class="mt-5">Gráfico de Pressão Arterial</h2>
+    <canvas id="graficoPressao" width="400" height="200"></canvas>
+    <h2 class="mt-5">Gráfico de Qualidade do Sono</h2>
+    <canvas id="graficoSono" width="400" height="200"></canvas>
 
     <!-- Listagem de Usuários -->
     <h2 class="mt-5">Usuários Registrados</h2>
-    <ul id="usuarios-list" class="list-group mb-5"></ul>
+    <ul id="usuarios-list" class="list-group mb-5">
+    <!-- Os usuários serão inseridos dinamicamente via JavaScript -->
+    </ul>
   </div>
 
-  <script>
-    const baseUrl = "https://jubilant-space-xylophone-pjrwr664qpw5c9rq4-3335.app.github.dev";
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const baseUrl = "https://jubilant-space-xylophone-pjrwr664qpw5c9rq4-3335.app.github.dev";
 
-    // Criar usuário
-    document.getElementById('usuario-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = new FormData(e.target);
-      const payload = {
-        nome: data.get('nome'),
-        email: data.get('email')
-      };
-      const res = await fetch(`${baseUrl}/usuarios`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+  // Criar usuário
+  document.getElementById('usuario-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const payload = {
+      nome: data.get('nome'),
+      email: data.get('email')
+    };
+    const res = await fetch(`${baseUrl}/usuarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      alert('Usuário criado!');
+      e.target.reset();
+      carregarUsuarios();
+    } else {
+      alert('Erro ao criar usuário');
+    }
+  });
+
+  // Excluir usuário
+  async function excluirUsuario(id) {
+    if (confirm(`Tem certeza que deseja excluir o usuário ${id}?`)) {
+      const res = await fetch(`${baseUrl}/usuarios/${id}`, {
+        method: 'DELETE'
       });
       if (res.ok) {
-        alert('Usuário criado!');
-        e.target.reset();
+        alert('Usuário excluído com sucesso!');
         carregarUsuarios();
       } else {
-        alert('Erro ao criar usuário');
-      }
-    });
-
-    // Pressão Arterial
-    document.getElementById('pressao-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = new FormData(e.target);
-      const payload = {
-        sistolica: parseInt(data.get('sistolica')),
-        diastolica: parseInt(data.get('diastolica')),
-        dataHora: data.get('dataHora'),
-        usuario: { id: parseInt(data.get('usuarioId')) }
-      };
-      const res = await fetch(`${baseUrl}/pressao`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      alert(res.ok ? 'Pressão registrada!' : 'Erro ao registrar pressão');
-    });
-
-    // Glicemia
-    document.getElementById('glicemia-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = new FormData(e.target);
-      const payload = {
-        nivel: parseFloat(data.get('nivel')),
-        dataHora: data.get('dataHora'),
-        usuario: { id: parseInt(data.get('usuarioId')) }
-      };
-      const res = await fetch(`${baseUrl}/glicemia`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      alert(res.ok ? 'Glicemia registrada!' : 'Erro ao registrar glicemia');
-    });
-
-    // Sono
-    document.getElementById('sono-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = new FormData(e.target);
-      const payload = {
-        inicio: data.get('inicio'),
-        fim: data.get('fim'),
-        qualidade: parseInt(data.get('qualidade')),
-        usuario: { id: parseInt(data.get('usuarioId')) }
-      };
-      const res = await fetch(`${baseUrl}/sono`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      alert(res.ok ? 'Sono registrado!' : 'Erro ao registrar sono');
-    });
-
-    // Listar usuários
-    async function carregarUsuarios() {
-      const res = await fetch(`${baseUrl}/usuarios`);
-      if (res.ok) {
-        const usuarios = await res.json();
-        const lista = document.getElementById('usuarios-list');
-        lista.innerHTML = '';
-        usuarios.forEach(u => {
-          const item = document.createElement('li');
-          item.className = 'list-group-item';
-          item.textContent = `ID: ${u.id} | Nome: ${u.nome} | Email: ${u.email}`;
-          lista.appendChild(item);
-        });
+        alert('Erro ao excluir usuário.');
       }
     }
+  }
 
-    // Carregar ao abrir
-    carregarUsuarios();
+  // Listar usuários com botão de exclusão
+  async function carregarUsuarios() {
+    const res = await fetch(`${baseUrl}/usuarios`);
+    if (res.ok) {
+      const usuarios = await res.json();
+      const lista = document.getElementById('usuarios-list');
+      lista.innerHTML = '';
+      usuarios.forEach(u => {
+        const item = document.createElement('li');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+        item.innerHTML = `
+          <span>ID: ${u.id} | Nome: ${u.nome} | Email: ${u.email}</span>
+          <button class="btn btn-sm btn-danger" onclick="excluirUsuario(${u.id})">Excluir</button>
+        `;
+        lista.appendChild(item);
+      });
+    }
+  }
 
-document.getElementById('relatorio-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const usuarioId = e.target.usuarioId.value;
-  const resultado = document.getElementById('relatorio-resultado');
-  resultado.innerHTML = `<p>Carregando dados do usuário ${usuarioId}...</p>`;
+  // Carregar ao abrir
+  carregarUsuarios();
 
-  try {
-    const [pressaoRes, glicemiaRes, sonoRes, alertaRes] = await Promise.all([
-      fetch(`${baseUrl}/pressao`),
-      fetch(`${baseUrl}/glicemia`),
-      fetch(`${baseUrl}/sono`),
-      fetch(`${baseUrl}/alertas/${usuarioId}`)
-    ]);
+  // Pressão Arterial
+  document.getElementById('pressao-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const payload = {
+      sistolica: parseInt(data.get('sistolica')),
+      diastolica: parseInt(data.get('diastolica')),
+      dataHora: data.get('dataHora'),
+      usuario: { id: parseInt(data.get('usuarioId')) }
+    };
+    const res = await fetch(`${baseUrl}/pressao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    alert(res.ok ? 'Pressão registrada!' : 'Erro ao registrar pressão');
+  });
 
-    const [pressao, glicemia, sono, alertas] = await Promise.all([
-      pressaoRes.json(),
-      glicemiaRes.json(),
-      sonoRes.json(),
-      alertaRes.json()
-    ]);
+  // Glicemia
+  document.getElementById('glicemia-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const payload = {
+      nivel: parseFloat(data.get('nivel')),
+      dataHora: data.get('dataHora'),
+      usuario: { id: parseInt(data.get('usuarioId')) }
+    };
+    const res = await fetch(`${baseUrl}/glicemia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    alert(res.ok ? 'Glicemia registrada!' : 'Erro ao registrar glicemia');
+  });
 
-    const filtrarPorUsuario = (lista) => lista.filter(item => item.usuario?.id == usuarioId);
+  // Sono
+  document.getElementById('sono-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const payload = {
+      inicio: data.get('inicio'),
+      fim: data.get('fim'),
+      qualidade: parseInt(data.get('qualidade')),
+      usuario: { id: parseInt(data.get('usuarioId')) }
+    };
+    const res = await fetch(`${baseUrl}/sono`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    alert(res.ok ? 'Sono registrado!' : 'Erro ao registrar sono');
+  });
 
-    const pressaoFiltrada = filtrarPorUsuario(pressao);
-    const glicemiaFiltrada = filtrarPorUsuario(glicemia);
-    const sonoFiltrada = filtrarPorUsuario(sono);
+  // Relatório por usuário + gráfico
+  document.getElementById('relatorio-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const usuarioId = e.target.usuarioId.value;
+    const resultado = document.getElementById('relatorio-resultado');
+    resultado.innerHTML = `<p>Carregando dados do usuário ${usuarioId}...</p>`;
 
-    resultado.innerHTML = `
-      <h4>Pressão Arterial</h4>
-      <ul class="list-group mb-3">
-        ${pressaoFiltrada.map(p => `<li class="list-group-item">Sistólica: ${p.sistolica}, Diastólica: ${p.diastolica}, Data: ${p.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
-      </ul>
+    try {
+      const [pressaoRes, glicemiaRes, sonoRes, alertaRes] = await Promise.all([
+        fetch(`${baseUrl}/pressao`),
+        fetch(`${baseUrl}/glicemia`),
+        fetch(`${baseUrl}/sono`),
+        fetch(`${baseUrl}/alertas/${usuarioId}`)
+      ]);
 
-      <h4>Glicemia</h4>
-      <ul class="list-group mb-3">
-        ${glicemiaFiltrada.map(g => `<li class="list-group-item">Nível: ${g.nivel}, Data: ${g.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
-      </ul>
+      const [pressao, glicemia, sono, alertas] = await Promise.all([
+        pressaoRes.json(),
+        glicemiaRes.json(),
+        sonoRes.json(),
+        alertaRes.json()
+      ]);
 
-      <h4>Sono</h4>
-      <ul class="list-group mb-3">
-        ${sonoFiltrada.map(s => `<li class="list-group-item">Início: ${s.inicio}, Fim: ${s.fim}, Qualidade: ${s.qualidade}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
-      </ul>
+      const filtrarPorUsuario = (lista) => lista.filter(item => item.usuario?.id == usuarioId);
 
-      <h4 class="text-danger">Alertas</h4>
-      <ul class="list-group mb-5">
-        ${alertas.map(a => `<li class="list-group-item list-group-item-danger">[${a.tipo}] ${a.mensagem} — ${a.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum alerta gerado.</li>'}
-      </ul>
-    `;
-  } catch (err) {
-    resultado.innerHTML = `<p class="text-danger">Erro ao carregar relatório.</p>`;
-    console.error(err);
+      const pressaoFiltrada = filtrarPorUsuario(pressao);
+      const glicemiaFiltrada = filtrarPorUsuario(glicemia);
+      const sonoFiltrada = filtrarPorUsuario(sono);
+
+      resultado.innerHTML = `
+        <h4>Pressão Arterial</h4>
+        <ul class="list-group mb-3">
+          ${pressaoFiltrada.map(p => `<li class="list-group-item">Sistólica: ${p.sistolica}, Diastólica: ${p.diastolica}, Data: ${p.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
+        </ul>
+
+        <h4>Glicemia</h4>
+        <ul class="list-group mb-3">
+          ${glicemiaFiltrada.map(g => `<li class="list-group-item">Nível: ${g.nivel}, Data: ${g.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
+        </ul>
+
+        <h4>Sono</h4>
+        <ul class="list-group mb-3">
+          ${sonoFiltrada.map(s => `<li class="list-group-item">Início: ${s.inicio}, Fim: ${s.fim}, Qualidade: ${s.qualidade}</li>`).join('') || '<li class="list-group-item">Nenhum registro encontrado.</li>'}
+        </ul>
+
+        <h4 class="text-danger">Alertas</h4>
+        <ul class="list-group mb-5">
+          ${alertas.map(a => `<li class="list-group-item list-group-item-danger">[${a.tipo}] ${a.mensagem} — ${a.dataHora}</li>`).join('') || '<li class="list-group-item">Nenhum alerta gerado.</li>'}
+        </ul>
+      `;
+
+      // Gráfico de Glicemia
+      const glicemiaLabels = glicemiaFiltrada.map(g => new Date(g.dataHora).toLocaleString());
+      const glicemiaValores = glicemiaFiltrada.map(g => g.nivel);
+
+      const ctx = document.getElementById('graficoGlicemia').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: glicemiaLabels,
+          datasets: [{
+            label: 'Nível de Glicemia',
+            data: glicemiaValores,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: false
+            }
+          }
+        }
+      });
+
+    } catch (err) {
+      resultado.innerHTML = `<p class="text-danger">Erro ao carregar relatório.</p>`;
+      console.error(err);
+    }
+  });
+  // Gráfico de Pressão Arterial
+const pressaoLabels = pressaoFiltrada.map(p => new Date(p.dataHora).toLocaleString());
+const sistolicaValores = pressaoFiltrada.map(p => p.sistolica);
+const diastolicaValores = pressaoFiltrada.map(p => p.diastolica);
+
+const ctxPressao = document.getElementById('graficoPressao').getContext('2d');
+new Chart(ctxPressao, {
+  type: 'line',
+  data: {
+    labels: pressaoLabels,
+    datasets: [
+      {
+        label: 'Sistólica',
+        data: sistolicaValores,
+        borderColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        fill: true,
+        tension: 0.3
+      },
+      {
+        label: 'Diastólica',
+        data: diastolicaValores,
+        borderColor: 'rgba(255, 206, 86, 1)',
+        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+        fill: true,
+        tension: 0.3
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: false
+      }
+    }
   }
 });
 
+// Gráfico de Qualidade do Sono
+const sonoLabels = sonoFiltrada.map(s => new Date(s.inicio).toLocaleString());
+const sonoQualidade = sonoFiltrada.map(s => s.qualidade);
 
-  </script>
+const ctxSono = document.getElementById('graficoSono').getContext('2d');
+new Chart(ctxSono, {
+  type: 'bar',
+  data: {
+    labels: sonoLabels,
+    datasets: [{
+      label: 'Qualidade do Sono (1 a 5)',
+      data: sonoQualidade,
+      backgroundColor: 'rgba(153, 102, 255, 0.6)',
+      borderColor: 'rgba(153, 102, 255, 1)',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        min: 1,
+        max: 5,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    }
+  }
+});
+</script>
+
 </body>
 </html>
